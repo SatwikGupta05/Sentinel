@@ -634,4 +634,3 @@ No more supply chain attacks that could have been prevented.
 
 **Built with ❤️ for JavaScript security.**
 
-[⭐ Star us on GitHub](https://github.com/yourusername/sentinel) | [🐦 Follow on Twitter](https://twitter.com/sentinel_security) | [📢 Read our Blog](https://sentinel.dev/blog)
