@@ -132,15 +132,45 @@ jobs:
     steps:
       - uses: sentinel-security/sentinel-action@v1
         with:
-          api-url: 'https://api.sentinel.dev'
+          api-url: 'https://your-deployed-sentinel.railway.app'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+> **Note:** You need to host your own Sentinel API. See [Deployment Guide](#deployment-guide) below. Each team/organization self-hosts their own instance.
 
 ---
 
 ### For Solo Devs: CLI Before npm install
 
 Run a complete security audit **before installing anything**.
+
+#### **Option 1: Using Published Sentinel (Recommended for End Users)**
+
+Once Sentinel is published on npm, anyone can use it globally:
+
+```bash
+# Clone any repo
+$ git clone https://github.com/someone/project
+$ cd project
+
+# First command: scan all dependencies (works worldwide)
+$ npx sentinel check-all
+
+# Review results, then install
+$ npm install
+$ npm start
+```
+
+**Usage:**
+```bash
+# Scan any project
+npx sentinel check-all
+
+# Check specific file
+npx sentinel check-all package.json
+npx sentinel check-all requirements.txt
+npx sentinel check-all yarn.lock
+```
 
 **How it works:**
 ```
@@ -200,18 +230,73 @@ Next steps:
 3. ✅ Then run: npm install
 ```
 
-**Usage:**
+---
+
+#### **Option 2: Testing Locally (For Development/Contributors)**
+
+Want to test Sentinel before it's published on npm? Build and link locally:
+
+**Step 1: Clone & Setup Sentinel**
 ```bash
-# Clone any repo
-$ git clone https://github.com/someone/project
-$ cd project
+git clone https://github.com/SatwikGupta05/sentinel.git
+cd sentinel
+npm install
+npm run build
+```
 
-# First command: scan all dependencies
-$ npx sentinel check-all
+**Step 2: Link Locally**
+```bash
+# Make sentinel available as a global command
+npm link
 
-# Review results, then install
-$ npm install
-$ npm start
+# Verify it's linked
+sentinel --version
+```
+
+**Step 3: Test in Another Project**
+```bash
+# Go to any project with package.json
+cd /path/to/your/test-project
+
+# Now sentinel is available
+npx sentinel check-all
+# or
+sentinel check-all
+```
+
+**Step 4: Unlink When Done**
+```bash
+# Remove the global link
+npm unlink -g sentinel
+```
+
+---
+
+#### **Option 3: Direct Path (For Testing Without npm link)**
+
+Or run it directly from the Sentinel repo without installation:
+
+```bash
+# From your test project
+node /path/to/sentinel/dist/cli/index.js check-all
+```
+
+---
+
+#### **Publishing to npm (For End Users Worldwide)**
+
+When Sentinel is ready for public use:
+
+```bash
+# 1. Create npm account (if you don't have one)
+npm adduser
+
+# 2. From Sentinel repo root, build and publish
+npm run build
+npm publish
+
+# 3. Now anyone worldwide can use it
+npx sentinel check-all
 ```
 
 **Supported Ecosystems:**
@@ -294,27 +379,32 @@ All scans return **one of three verdicts**:
 
 ### For Teams (GitHub Action)
 
-1. Add `.github/workflows/sentinel.yml` to your repo (see example above)
-2. Create a PR with package changes
-3. Sentinel automatically scans and comments
+1. Deploy Sentinel API (see [Deployment Guide](#deployment-guide) below)
+2. Add `.github/workflows/sentinel.yml` to your repo (see example above)
+3. Create a PR with package changes
+4. Sentinel automatically scans and comments
 
 ### For Solo Devs (CLI)
 
+**Option 1: After npm publish**
 ```bash
-# Scan any project
 npx sentinel check-all
+```
 
-# Check specific file
-npx sentinel check-all package.json
-npx sentinel check-all requirements.txt
-npx sentinel check-all yarn.lock
+**Option 2: Test locally now**
+```bash
+git clone https://github.com/SatwikGupta05/sentinel.git
+cd sentinel
+npm install && npm run build
+npm link
+npx sentinel check-all
 ```
 
 ### Local Development
 
 ```bash
 # Clone repo
-git clone https://github.com/SatwikGupta05/Sentinel.git
+git clone https://github.com/SatwikGupta05/sentinel.git
 cd sentinel
 
 # Install dependencies
@@ -330,9 +420,52 @@ npm run db:init
 # Start API server
 npm run dev
 
-# In another terminal, start CLI
+# In another terminal, test CLI
 npx sentinel check-all
 ```
+
+---
+
+## 🚀 Deployment Guide
+
+Deploy your own Sentinel instance for your team. Each organization self-hosts their own API.
+
+### Option 1: Railway (Easiest - 5 minutes)
+
+1. Sign up: [railway.app](https://railway.app)
+2. Click "Deploy from GitHub"
+3. Select your Sentinel repo
+4. Fill in environment variables:
+   ```env
+   GEMINI_API_KEY=your_api_key
+   GITHUB_TOKEN=your_token
+   DB_TYPE=supabase
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_SERVICE_KEY=your_key
+   NODE_ENV=production
+   ```
+5. Deploy
+6. Get your URL: `https://your-sentinel-xyz.railway.app`
+7. Use that URL in your GitHub workflows
+
+### Option 2: Heroku
+
+1. Sign up: [heroku.com](https://heroku.com)
+2. Create new app
+3. Connect GitHub repo
+4. Set buildpack: Node.js
+5. Add environment variables (same as above)
+6. Deploy
+7. Get your URL: `https://your-app.herokuapp.com`
+
+### Option 3: Self-Hosted (AWS/DigitalOcean)
+
+1. SSH into your server
+2. Clone Sentinel repo
+3. Set environment variables
+4. Run: `npm run build && npm start`
+5. Set up reverse proxy (Nginx)
+6. Enable HTTPS (Let's Encrypt)
 
 ---
 
@@ -415,7 +548,8 @@ curl -X POST http://localhost:5000/api/scans \
     "packages": {
       "lodash": {"old": "4.17.20", "new": "4.17.21"},
       "react": {"old": "17.0.0", "new": "18.0.0"}
-    }'
+    }
+  }'
 ```
 
 **Response (200 OK):**
@@ -491,6 +625,7 @@ sentinel/
 ├── dist/                 # Compiled TypeScript
 ├── data/                 # SQLite database (dev)
 ├── .env.example          # Environment template
+├── .gitattributes        # Line ending normalization
 ├── package.json          # Dependencies
 └── tsconfig.json         # TypeScript config
 ```
@@ -505,6 +640,7 @@ npm run db:init          # Initialize database
 npm run db:reset         # Reset database
 npm run lint             # Lint code
 npm run type-check       # Check TypeScript types
+npm run cli              # Test CLI locally
 ```
 
 ---
@@ -523,6 +659,27 @@ npm run db:init
 - Only one API instance can write at a time
 - Use Supabase for concurrent access
 
+### Supabase Issues
+
+**"Connection refused"**
+- Verify `SUPABASE_URL` is correct (should have `https://`)
+- Check `SUPABASE_SERVICE_KEY` is valid (Service Role, not Anon Key)
+
+**"Table does not exist"**
+- Run SQL migrations in Supabase Dashboard
+
+### Gemini API Issues
+
+**"API key invalid"**
+1. Create new key at [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+2. Update `.env`
+3. Restart server
+
+**"Rate limited"**
+- Free tier: 1,000 requests/day
+- Check usage in Google AI Studio dashboard
+
+---
 
 ## 📈 Best Practices
 
@@ -562,6 +719,12 @@ A: Set `GEMINI_API_KEY=` (empty). Sentinel will use 3 checks instead of 4.
 **Q: Can Sentinel scan Python/Ruby packages?**
 A: Support is planned for Phase 2. Currently focused on npm.
 
+**Q: Do I need to host Sentinel?**
+A: Yes, each team self-hosts their own instance. See [Deployment Guide](#deployment-guide). You don't host a central server.
+
+**Q: How do users on Windows handle line endings?**
+A: `.gitattributes` file normalizes line endings. They'll work fine.
+
 ---
 
 ## 📊 Success Metrics
@@ -580,21 +743,22 @@ A: Support is planned for Phase 2. Currently focused on npm.
 
 ## 🗺️ Roadmap
 
-### Current (Phase 1)
+### Current (Phase 1) ✅
 - ✅ GitHub Action for teams
 - ✅ CLI tool for solo devs
 - ✅ 4 automated security checks
 - ✅ SQLite + Supabase support
 - ✅ API authentication
+- ✅ Self-hosted architecture
 
-### Coming Soon (Phase 2)
+### Coming Soon (Phase 2) 🔜
 - 🔜 VS Code extension
 - 🔜 npm install hooks
 - 🔜 Git pre-commit hooks
 - 🔜 Python/Ruby support
 - 🔜 Slack/Discord notifications
 
-### Future (Phase 3)
+### Future (Phase 3) 📅
 - 📅 Organization management
 - 📅 Custom security policies
 - 📅 Threat intelligence feeds
@@ -612,6 +776,10 @@ We welcome contributions! Areas we need help:
 3. **Package Managers** - Python, Ruby, Go, Rust parsers
 4. **Integrations** - Slack, Discord, PagerDuty, SIEM tools
 5. **Documentation** - Tutorials, blog posts, video guides
+
+See `CONTRIBUTING.md` for guidelines.
+
+---
 
 
 ## 📄 License
